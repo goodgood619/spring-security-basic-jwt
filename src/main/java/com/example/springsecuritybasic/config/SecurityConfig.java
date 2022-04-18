@@ -1,12 +1,15 @@
 package com.example.springsecuritybasic.config;
 
+import com.example.springsecuritybasic.config.jwt.JwtAuthenticationFilter;
 import com.example.springsecuritybasic.config.oauth.PrincipalOauth2UserService;
+import com.example.springsecuritybasic.filter.MyFilter1;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.web.filter.CorsFilter;
 //1. 코드 받기(인증) 2. 액세스 토큰 (권한) ,
 // 3. 사용자 프로필 정보 가져와서 4-1. 그 정보를 토대로 회원가입을 자동으로 진행시키기도 함
@@ -30,6 +33,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
   @Override
   protected void configure(HttpSecurity http) throws Exception {
+    http.addFilterBefore(new MyFilter1(), SecurityContextPersistenceFilter.class);
     http.csrf().disable(); // security 작동안함
     /*
     http.authorizeRequests()
@@ -49,12 +53,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .userInfoEndpoint()
             .userService(principalOauth2UserService); // google 로그인이 완료된 뒤의 후처리가 필요함. tip) 코드 X, accessToken + 사용자프로필정보를 받는다
 */
-
     http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)// no Session
         .and()
         .addFilter(corsFilter) // @CrossOrigin(인증X), Security Filter에 등록 해야함 인증(O)
         .formLogin().disable()
         .httpBasic().disable() // http headers에서 Authorization (ID, PW) : httpBasic 방식
+        .addFilter(new JwtAuthenticationFilter(authenticationManager()))
         .authorizeRequests()
         .antMatchers("/api/v1/user/**")
         .access("hasRole('ROLE_USER') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
