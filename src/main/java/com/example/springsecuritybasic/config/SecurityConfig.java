@@ -1,12 +1,13 @@
 package com.example.springsecuritybasic.config;
 
 import com.example.springsecuritybasic.config.oauth.PrincipalOauth2UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.web.filter.CorsFilter;
 //1. 코드 받기(인증) 2. 액세스 토큰 (권한) ,
 // 3. 사용자 프로필 정보 가져와서 4-1. 그 정보를 토대로 회원가입을 자동으로 진행시키기도 함
 // 4-2 (이메일, 전화번호, 이름, 아이디) 쇼핑몰 -> (집주소), 백화점몰 -> (vip등급, 일반등급)
@@ -17,12 +18,20 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 // default : false, @Secured 활성화, ex) @Secured(ROLE 명시), default : false, @preAuthorize, @postAuthorize 활성화
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-  @Autowired
-  private PrincipalOauth2UserService principalOauth2UserService;
+  private final PrincipalOauth2UserService principalOauth2UserService;
+  private final CorsFilter corsFilter;
+
+  public SecurityConfig(
+      PrincipalOauth2UserService principalOauth2UserService,
+      CorsFilter corsFilter) {
+    this.principalOauth2UserService = principalOauth2UserService;
+    this.corsFilter = corsFilter;
+  }
 
   @Override
   protected void configure(HttpSecurity http) throws Exception {
     http.csrf().disable(); // security 작동안함
+    /*
     http.authorizeRequests()
         .antMatchers("/user/**").authenticated() // 인증이 필요
         .antMatchers("/manager/**").access("hasRole('ROLE_ADMIN') or hasRole('Role_MANAGER')")
@@ -39,6 +48,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .loginPage("/loginForm")
             .userInfoEndpoint()
             .userService(principalOauth2UserService); // google 로그인이 완료된 뒤의 후처리가 필요함. tip) 코드 X, accessToken + 사용자프로필정보를 받는다
+*/
+
+    http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)// no Session
+        .and()
+        .addFilter(corsFilter) // @CrossOrigin(인증X), Security Filter에 등록 해야함 인증(O)
+        .formLogin().disable()
+        .httpBasic().disable() // http headers에서 Authorization (ID, PW) : httpBasic 방식
+        .authorizeRequests()
+        .antMatchers("/api/v1/user/**")
+        .access("hasRole('ROLE_USER') or hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
+        .antMatchers("/api/v1/manager/**")
+        .access("hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')")
+        .antMatchers("/api/v1/admin/**")
+        .access("hasRole('ROLE_ADMIN')")
+        .anyRequest().permitAll();
+
   }
 
 }
