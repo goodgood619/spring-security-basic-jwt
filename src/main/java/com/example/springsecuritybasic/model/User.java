@@ -1,6 +1,9 @@
 package com.example.springsecuritybasic.model;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -24,6 +27,8 @@ public class User {
   private String email;
   private String role; // ROLE_USER, ROLE_ADMIN
 
+  private String roles; // USER, ADMIN for JWT
+
   private String provider;
   private String providerId;
   @CreationTimestamp
@@ -39,5 +44,12 @@ public class User {
     this.provider = provider;
     this.providerId = providerId;
     this.createDate = createDate;
+  }
+
+  public List<String> getRoleList() {
+    if (this.roles.length() > 0) {
+      return Arrays.asList(this.roles.split(","));
+    }
+    return new ArrayList<>();
   }
 }
